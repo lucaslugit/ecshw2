@@ -185,7 +185,7 @@ int uthread_join(uthread_t tid, int *retval)
 	/*get parent/child tcb */
 	uthread_tcb* parent_tcb = current_thread;
 	uthread_tcb* child_tcb = (uthread_tcb*)malloc(sizeof(uthread_tcb));
-	queue_iterate(queue, find_tid, (void*)tid, (void**)&child_tcb);	
+	queue_iterate(queue, find_tid, (void*)&tid, (void**)&child_tcb);	
 
 	/*some conditions may return false*/
 	if(tid==0||parent_tcb->tid==tid||child_tcb==NULL){
