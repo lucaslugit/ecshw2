@@ -194,7 +194,10 @@ int uthread_join(uthread_t tid, int *retval)
 	if(child_tcb->joined==true){
 		return -1;
 	}
-
+	
+	/*change state*/
+	child_tcb->joined=true;
+	
 	while(queue_length(queue)>0){
 		/*still be blocked if child tcb is ready or running*/
 		if(strncmp(child_tcb->state,"running",Max_size)==0||strncmp(child_tcb->state,"ready",Max_size)==0){
