@@ -25,6 +25,7 @@ typedef struct uthread_tcb {
 	uthread_ctx_t* context;
 	int return_val;
 	bool joined;
+	uthread_tcb* parent_tcb;
 }uthread_tcb;
 //typedef struct uthread_tcb, including its TID, state, stack, context, return value, and the state of join or not
 
@@ -51,6 +52,7 @@ int uthread_start(int preempt)
 	init_thread->return_val = -1;
 	init_thread->stack = NULL;
 	init_thread->joined = false;
+	init_thread->parent_tcb = NULL;
 
 	current_thread = init_thread;
 	/*put it into the queue as the first thread*/
@@ -92,6 +94,7 @@ int uthread_create(uthread_func_t func)
 	new_thread->stack = uthread_ctx_alloc_stack();
 	new_thread->return_val = -1;
 	new_thread->joined = false;
+	next_thread->parent_tcb = NULL;
 	
 	/*creation failure*/
 	if(new_thread->stack == NULL){
@@ -150,10 +153,14 @@ uthread_t uthread_self(void)
 void uthread_exit(int retval)
 {
 	/* if a function finishes running, it will return an int value.*/
-	if(strncmp(current_thread->state,"running",Max_size)==0){
-		uthread_tcb* exit_thread = current_thread;
-		strcpy(exit_thread->state, "zombie");
-		exit_thread->return_val = retval;
+	// if(strncmp(current_thread->state,"running",Max_size)==0){
+	uthread_tcb* exit_thread = current_thread;
+	strcpy(exit_thread->state, "zombie");
+	exit_thread->return_val = retval;
+	
+	if(exit_thread->parent_tcb != NULL){
+		strcpy(exit_thread->parent_tcb->state, "ready");
+	}
 		//uthread_tcb* next_thread;
 		// queue_dequeue(queue,(void**)&next_thread);
 		// if(queue_length(queue)){
@@ -161,7 +168,7 @@ void uthread_exit(int retval)
 		// 	uthread_ctx_switch(exit_thread->context,next_thread->context);
 		// 	current_thread = next_thread;
 		// }
-	}
+	// }
 
 	uthread_yield();
 }
@@ -197,12 +204,13 @@ int uthread_join(uthread_t tid, int *retval)
 	}
 	
 	/*change state*/
-	child_tcb->joined=true;
+	child_tcb->joined = true;
 
 	while(queue_length(queue)>0){
 		/*still be blocked if child tcb is ready or running*/
 		if(strncmp(child_tcb->state,"running",Max_size)==0||strncmp(child_tcb->state,"ready",Max_size)==0){
 			strcpy(parent_tcb->state,"blocked");
+			child_tcb->parent_tcb = parent_tcb;
 			uthread_yield();
 		}
 		else if(strncmp(child_tcb->state,"zombie",Max_size)==0){
@@ -214,7 +222,6 @@ int uthread_join(uthread_t tid, int *retval)
 			free(child_tcb->stack);
 			free(child_tcb->context);
 			free(child_tcb);
-			strcpy(parent_tcb->state,"ready");
 			break;
 		}
 		else{
