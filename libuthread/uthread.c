@@ -25,7 +25,7 @@ typedef struct uthread_tcb {
 	uthread_ctx_t* context;
 	int return_val;
 	bool joined;
-	uthread_tcb* parent_tcb;
+	uthread_t parent_tid;
 }uthread_tcb;
 //typedef struct uthread_tcb, including its TID, state, stack, context, return value, and the state of join or not
 
@@ -52,7 +52,7 @@ int uthread_start(int preempt)
 	init_thread->return_val = -1;
 	init_thread->stack = NULL;
 	init_thread->joined = false;
-	init_thread->parent_tcb = NULL;
+	init_thread->parent_tid = -1;
 
 	current_thread = init_thread;
 	/*put it into the queue as the first thread*/
@@ -94,7 +94,7 @@ int uthread_create(uthread_func_t func)
 	new_thread->stack = uthread_ctx_alloc_stack();
 	new_thread->return_val = -1;
 	new_thread->joined = false;
-	next_thread->parent_tcb = NULL;
+	next_thread->parent_tid = -1;
 	
 	/*creation failure*/
 	if(new_thread->stack == NULL){
@@ -149,30 +149,6 @@ uthread_t uthread_self(void)
 	return -1;
 }
 
-/*exit current thread*/
-void uthread_exit(int retval)
-{
-	/* if a function finishes running, it will return an int value.*/
-	// if(strncmp(current_thread->state,"running",Max_size)==0){
-	uthread_tcb* exit_thread = current_thread;
-	strcpy(exit_thread->state, "zombie");
-	exit_thread->return_val = retval;
-	
-	if(exit_thread->parent_tcb != NULL){
-		strcpy(exit_thread->parent_tcb->state, "ready");
-	}
-		//uthread_tcb* next_thread;
-		// queue_dequeue(queue,(void**)&next_thread);
-		// if(queue_length(queue)){
-		// 	strcpy(next_thread->state, "running");
-		// 	uthread_ctx_switch(exit_thread->context,next_thread->context);
-		// 	current_thread = next_thread;
-		// }
-	// }
-
-	uthread_yield();
-}
-
 /*find tcb with same required tid in queue*/
 static int find_tid(queue_t q, void* tcb_queue, void* t)
 {
@@ -184,6 +160,33 @@ static int find_tid(queue_t q, void* tcb_queue, void* t)
 		return 1;
 	}
     return 0;
+}
+
+/*exit current thread*/
+void uthread_exit(int retval)
+{
+	/* if a function finishes running, it will return an int value.*/
+	// if(strncmp(current_thread->state,"running",Max_size)==0){
+	uthread_tcb* exit_thread = current_thread;
+	strcpy(exit_thread->state, "zombie");
+	exit_thread->return_val = retval;
+	
+	if(exit_thread->parent_tid != -1){
+		uthread tcb* parent_tcb = (uthread_tcb*)malloc(sizeof(uthread_tcb));
+		uthread_t parent_tid = exit_thread->parent_tid;
+		queue_iterate(queue, find_tid, (void*)&parent_tid, (void**)&parent_tcb);
+		strcpy(parent_tcb->state, "ready");
+	}
+		//uthread_tcb* next_thread;
+		// queue_dequeue(queue,(void**)&next_thread);
+		// if(queue_length(queue)){
+		// 	strcpy(next_thread->state, "running");
+		// 	uthread_ctx_switch(exit_thread->context,next_thread->context);
+		// 	current_thread = next_thread;
+		// }
+	// }
+
+	uthread_yield();
 }
 
 
@@ -210,7 +213,7 @@ int uthread_join(uthread_t tid, int *retval)
 		/*still be blocked if child tcb is ready or running*/
 		if(strncmp(child_tcb->state,"running",Max_size)==0||strncmp(child_tcb->state,"ready",Max_size)==0){
 			strcpy(parent_tcb->state,"blocked");
-			child_tcb->parent_tcb = parent_tcb;
+			child_tcb->parent_tid = parent_tcb->tid;
 			uthread_yield();
 		}
 		else if(strncmp(child_tcb->state,"zombie",Max_size)==0){
@@ -232,3 +235,4 @@ int uthread_join(uthread_t tid, int *retval)
 
 	return 0;
 }
+
