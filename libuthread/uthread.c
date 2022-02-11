@@ -199,7 +199,7 @@ int uthread_join(uthread_t tid, int *retval)
 	/*change state*/
 	child_tcb->joined=true;
 
-	while(queue_length(queue)>0){
+	//while(queue_length(queue)>0){
 		/*still be blocked if child tcb is ready or running*/
 		if(strncmp(child_tcb->state,"running",Max_size)==0||strncmp(child_tcb->state,"ready",Max_size)==0){
 			strcpy(parent_tcb->state,"blocked");
@@ -221,7 +221,7 @@ int uthread_join(uthread_t tid, int *retval)
 			/*child gets other states*/
 			printf("wrong state\n");
 		}
-	}
+	//}
 
 	return 0;
 }
