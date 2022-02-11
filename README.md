@@ -69,32 +69,57 @@ case.
 The implementation is relatively vague for me at first. Therefore, we first
 build up a structure with only four elements:tid, state, stack, context and
 return value. This is defineid as `uthread_tcb` Then, we define some global 
-variables such as queue, uthread_tid, and current thread. In the beginning, we
-only create a thread queue in `uthread_start()`. In `uthread_stop()`, we will 
-only destroy the queue `queue` if the queue is empty. Therefore, we start to
-implement `uthread_create()`. We allocate memory for `new_thread`, and its
-context and stack. The state should be `ready`. After initializing the context
-using `uthread_ctx_init()`, we enqueue the thread to the thread queue. In
-giving value to the new thread, we realize we need to give TID to the main
-thread, and other elements in `uthread_tcb` to make it as the first thread in
-queue. 
-In `uthread_self()`, we only need to return the tid of the current thread, which is the global variable. In `uthread_yield()`, we do the
+variables such as queue, uthread_tid, and current thread. In the beginning,
+we only create a thread queue in `uthread_start()`. In `uthread_stop()`, we
+will  only destroy the queue `queue` if the queue is empty. Therefore, we
+start to implement `uthread_create()`. We allocate memory for `new_thread`,
+and its context and stack. The state should be `ready`.
+After initializing the context using `uthread_ctx_init()`, we enqueue the
+thread to the thread queue. In giving value to the new thread, we realize we
+need to give TID to the main thread, and other elements in `uthread_tcb` to
+make it as the first thread in queue. 
+In `uthread_self()`, we only need to return the tid of the current thread,
+which is the global variable. In `uthread_yield()`, we do the
 initialization of `next_thread` and `now_thread`, now_thread is equal to the
-current_thread, and it should be put to the end of the current queue. Then, we
-find the frist `ready` state in queue, if the next thread is not `ready`, we
-will enqueue it and then dequeue the next one. If the next thread is `ready`, the current thread will be turned to this thread and we use
+current_thread, and it should be put to the end of the current queue. Then,
+we find the frist `ready` state in queue, if the next thread is not `ready`,
+we will enqueue it and then dequeue the next one. If the next thread is
+`ready`, the current thread will be turned to this thread and we use
 `uthread_ctx_switch()` function in `context.c` to change the running function.
 In `uthread_exit()`, if the current function finishes running, we will make
 the thread's state become zombie so that it is waiting for its parent to collect and the thread's return_value will be got from function.
 
-###Testing
-In phase 2 running, by using professor's test case yield.c, we find out if a function(thread2) finishes running, it may not go to next thread in queue(it may not go to thread 3 and the main function), so we need to add `uthread_yield()` in the end of the `uthread_exit()`function. 
+### Testing
+In phase 2 running, by using professor's test case yield.c, we find out if a
+function(thread2) finishes running, it may not go to next thread in queue(it
+may not go to thread 3 and the main function), so we need to add
+`uthread_yield()` in the end of the `uthread_exit()`function. 
 
 ### uthread.c implementation phase 3
-In phase 3, we need to edit `uthread_join()`. We find out we need to add some more elements in the uthread_tcb structure, bool `joined` and int `parent_tid`. If there is a child thread and it is running or ready, the parent thread will be blocked in the `uthread_join()`. Then we will assign the parent tid to the child thread. Later, it goes to `uthread_yield()`, after the child thread finishes running, in function `uthread_exit()`,  it will collect the return value of its function and turns the parent thread's state to `ready`. In order to get the thread process by using tid value, we add a new function `find_tid()`, it will return 1 if the tid value of one `uthrea_tcb*` in the queue is same to the desired value. In order to find it one by one, we also use the function `queue_iterate()` and take `find_tid()` as the argument `func`. The next time when the parent thread is running `uthread_join()`, its child state has already been `zombie` so the parrent collects it and frees its space.
+In phase 3, we need to edit `uthread_join()`. We find out we need to add some
+more elements in the uthread_tcb structure, bool `joined` and int
+`parent_tid`. If there is a child thread and it is running or ready, the
+parent thread will be blocked in the `uthread_join()`. Then we will assign
+the parent tid to the child thread. Later, it goes to `uthread_yield()`,
+after the child thread finishes running, in function `uthread_exit()`,  it
+will collect the return value of its function and turns the parent thread's
+state to `ready`. In order to get the thread process by using tid value, we
+add a new function `find_tid()`, it will return 1 if the tid value of one
+`uthrea_tcb*` in the queue is same to the desired value. In order to find it
+one by one, we also use the function `queue_iterate()` and take `find_tid()`
+as the argument `func`. The next time when the parent thread is running
+`uthread_join()`, its child state has already been `zombie` so the parrent
+collects it and frees its space.
 
-###Testing
-We know the two phases' results should be the same, but one problem has interrupted us for a while. When I assign `parent_tid` the type of `uthread_t` in `uthread_tcb` structure, and assign the initial value of it `-1`, the comparison in `uthread_exit()` :`if(exit_thread->parent_tid != -1)` will return error, `it is always true because of type limits`. Later we find out the reason is `uthread_t` is an unsigned short int so we cannot simply assign it to `-1`. Therefore, in order to make the comparison work, we change the type of `parent_tid` to `int` so that it can work properly.
+### Testing
+We know the two phases' results should be the same, but one problem has
+interrupted us for a while. When I assign `parent_tid` the type of
+`uthread_t` in `uthread_tcb` structure, and assign the initial value of it
+`-1`, the comparison in `uthread_exit()` :`if(exit_thread->parent_tid != -1)`
+will return error, `it is always true because of type limits`. Later we find
+out the reason is `uthread_t` is an unsigned short int so we cannot simply
+assign it to `-1`. Therefore, in order to make the comparison work, we change
+the type of `parent_tid` to `int` so that it can work properly.
 
 ### makefile and preempt.c
 
