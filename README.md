@@ -121,8 +121,25 @@ out the reason is `uthread_t` is an unsigned short int so we cannot simply
 assign it to `-1`. Therefore, in order to make the comparison work, we change
 the type of `parent_tid` to `int` so that it can work properly.
 
-### makefile and preempt.c
+### makefile  
+We use makefile to compile programs, which is faster and fundamentally more 
+efficient. And after compiling, there are no errors and warnings. It would 
+generate a static library archive named libuthread.a. It can be executed 
+directly through other C files. In order to make it easier to modify the
+content in the future, we use $@ $^ to make the code more
+concise.
 
+### preempt.c implementation phase 4
+To solve uncooperative threads could keep the processing resource for 
+themselves if they never call uthread_yield().We use sigaction and Alarm to
+achieve it. In signhandle function, it receives alarm signals "SIGVTALRM" in 
+order to call uthread_yield(). In preempt_start().We set the alarm by using 
+struct itimerval,which will fire an alarm a hundred times per second.
+In preempt_enable() and preempt_disable(), we use sigprocmask() check if a signal has arrived.
+By blocking and unblocking signals, we can disable or enable preemption.
+
+## Source
+https://steemit.com/utopian-io/@luisrod/dynamic-queues-in-c-language (queue.c reference)
 
 ## License
 
