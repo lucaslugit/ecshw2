@@ -215,7 +215,7 @@ int uthread_join(uthread_t tid, int *retval)
 			free(child_tcb->context);
 			free(child_tcb);
 			strcpy(parent_tcb->state,"ready");
-			break;
+			//break;
 		}
 		else{
 			/*child gets other states*/
