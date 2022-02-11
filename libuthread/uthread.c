@@ -171,7 +171,7 @@ void uthread_exit(int retval)
 	strcpy(exit_thread->state, "zombie");
 	exit_thread->return_val = retval;
 	
-	if(exit_thread->parent_tid != -1){
+	if(exit_thread->parent_tid > -1){
 		uthread_tcb* parent_tcb = (uthread_tcb*)malloc(sizeof(uthread_tcb));
 		uthread_t parent_tid = exit_thread->parent_tid;
 		queue_iterate(queue, find_tid, (void*)&parent_tid, (void**)&parent_tcb);
