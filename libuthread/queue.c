@@ -153,7 +153,7 @@ int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 		if(return_value==1){
 			if(data!=NULL){
 				*data = current_data->address;
-				break;
+				return 0;
 			}
 		}
 		current_data = current_data->next;
