@@ -94,7 +94,7 @@ int uthread_create(uthread_func_t func)
 	new_thread->stack = uthread_ctx_alloc_stack();
 	new_thread->return_val = -1;
 	new_thread->joined = false;
-	next_thread->parent_tid = -1;
+	new_thread->parent_tid = -1;
 	
 	/*creation failure*/
 	if(new_thread->stack == NULL){
@@ -172,7 +172,7 @@ void uthread_exit(int retval)
 	exit_thread->return_val = retval;
 	
 	if(exit_thread->parent_tid != -1){
-		uthread tcb* parent_tcb = (uthread_tcb*)malloc(sizeof(uthread_tcb));
+		uthread_tcb* parent_tcb = (uthread_tcb*)malloc(sizeof(uthread_tcb));
 		uthread_t parent_tid = exit_thread->parent_tid;
 		queue_iterate(queue, find_tid, (void*)&parent_tid, (void**)&parent_tcb);
 		strcpy(parent_tcb->state, "ready");
@@ -235,4 +235,3 @@ int uthread_join(uthread_t tid, int *retval)
 
 	return 0;
 }
-
