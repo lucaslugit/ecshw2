@@ -166,25 +166,17 @@ static int find_tid(queue_t q, void* tcb_queue, void* t)
 void uthread_exit(int retval)
 {
 	/* if a function finishes running, it will return an int value.*/
-	// if(strncmp(current_thread->state,"running",Max_size)==0){
 	uthread_tcb* exit_thread = current_thread;
 	strcpy(exit_thread->state, "zombie");
 	exit_thread->return_val = retval;
 	
+	/*if it has parent_tid, we will find its parent_tcb and change its state from blocked to ready*/
 	if(exit_thread->parent_tid != -1){
 		uthread_tcb* parent_tcb = (uthread_tcb*)malloc(sizeof(uthread_tcb));
 		uthread_t parent_tid = exit_thread->parent_tid;
 		queue_iterate(queue, find_tid, (void*)&parent_tid, (void**)&parent_tcb);
 		strcpy(parent_tcb->state, "ready");
 	}
-		//uthread_tcb* next_thread;
-		// queue_dequeue(queue,(void**)&next_thread);
-		// if(queue_length(queue)){
-		// 	strcpy(next_thread->state, "running");
-		// 	uthread_ctx_switch(exit_thread->context,next_thread->context);
-		// 	current_thread = next_thread;
-		// }
-	// }
 
 	uthread_yield();
 }
